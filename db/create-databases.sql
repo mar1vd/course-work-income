@@ -1,0 +1,3 @@
+CREATE USER postgres WITH PASSWORD '1234' CREATEDB;
+CREATE DATABASE finance_db OWNER postgres;
+CREATE DATABASE finance_test OWNER postgres;
