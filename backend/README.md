@@ -26,7 +26,10 @@ HTTP-запит → middleware (helmet, cors, json, morgan) → routes → authe
 | `npm run db:migrate` | Створити таблиці |
 | `npm run db:seed` | Заповнити демо-даними |
 | `npm run db:setup` | Перестворити таблиці та заповнити (видаляє наявні дані!) |
-| `npm test` | Інтеграційні тести (на БД `finance_test`) |
+| `npm test` | Усі тести: unit + інтеграційні + API (на БД `finance_test`) |
+| `npm run test:unit` | Лише модульні тести (БД не потрібна) |
+| `npm run test:integration` | Лише інтеграційні тести сервер ↔ БД |
+| `npm run test:api` | Лише тести HTTP API |
 
 ## Змінні середовища (`.env`, зразок — `.env.example`)
 
@@ -38,6 +41,7 @@ HTTP-запит → middleware (helmet, cors, json, morgan) → routes → authe
 | `JWT_SECRET` | Секрет підпису токенів (у production задайте довгий випадковий рядок) |
 | `JWT_EXPIRES_IN` | Строк дії токена (8h) |
 | `CORS_ORIGIN` | Дозволені адреси frontend через кому |
+| `BUSINESS_TIMEZONE` | Часовий пояс підприємства для перевірки «дата не з майбутнього» (Europe/Kiev) |
 | `LOGIN_RATE_LIMIT` | Ліміт спроб входу за 15 хв з однієї IP-адреси |
 
 ## API

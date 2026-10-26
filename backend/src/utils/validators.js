@@ -1,6 +1,7 @@
 // Валідація вхідних даних. Виконується на сервері, навіть якщо така ж перевірка є у frontend.
 // Функції повертають об'єкт {поле: "повідомлення"}; assertValid кидає HTTP 422, якщо помилки є.
 import { ApiError } from './ApiError.js';
+import { config } from '../config/env.js';
 
 export const ROLES = ['admin', 'accountant', 'manager'];
 export const TYPES = ['income', 'expense'];
@@ -18,12 +19,10 @@ export function isISODate(value) {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
-// Найпізніша допустима дата операції: "сьогодні" з запасом в одну добу,
-// щоб різниця часових поясів між клієнтом і сервером не давала хибних відмов
-function latestAllowedDate() {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
+// Сьогоднішня дата за часовим поясом підприємства (формат YYYY-MM-DD).
+// Раніше використовувався UTC із запасом в одну добу, через що сервер приймав «завтрашню» дату.
+export function todayISO(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: config.timezone }).format(now);
 }
 
 // Ідентифікатор із URL: додатне ціле число
@@ -62,7 +61,7 @@ export function validateTransaction(body) {
   else if (amount > 9999999999.99) details.amount = 'Сума занадто велика';
 
   if (!isISODate(body.date)) details.date = 'Вкажіть коректну дату';
-  else if (body.date > latestAllowedDate()) details.date = 'Дата не може бути у майбутньому';
+  else if (body.date > todayISO()) details.date = 'Дата не може бути у майбутньому';
 
   const description = body.description == null ? '' : body.description;
   if (typeof description !== 'string') details.description = 'Опис має бути текстом';

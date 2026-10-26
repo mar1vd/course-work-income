@@ -17,6 +17,7 @@ export function validateTransaction(values) {
   if (!amount) errors.amount = 'Введіть суму';
   else if (!/^\d+(\.\d{1,2})?$/.test(amount)) errors.amount = 'Сума — додатне число, не більше 2 знаків після коми';
   else if (Number(amount) <= 0) errors.amount = 'Сума має бути більшою за 0';
+  else if (Number(amount) > 9999999999.99) errors.amount = 'Сума занадто велика';
 
   if (!values.date) errors.date = 'Вкажіть дату операції';
   else if (values.date > todayISO()) errors.date = 'Дата не може бути у майбутньому';

@@ -10,7 +10,10 @@
     "db:migrate": "node src/db/migrate.js",
     "db:seed": "node src/db/seed.js",
     "db:setup": "node src/db/migrate.js --reset && node src/db/seed.js",
-    "test": "node --test --test-concurrency=1 tests/api.test.js"
+    "test": "node --test --test-concurrency=1 tests/unit/validators.test.js tests/integration/repositories.test.js tests/api.test.js",
+    "test:unit": "node --test tests/unit/validators.test.js",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/repositories.test.js",
+    "test:api": "node --test --test-concurrency=1 tests/api.test.js"
   },
   "engines": {
     "node": ">=18"
