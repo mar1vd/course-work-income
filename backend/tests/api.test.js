@@ -307,6 +307,20 @@ describe('Операції: створення, зміна, видалення',
     assert.ok(res.body.details.date);
   });
 
+  it('завтрашня дата (за часовим поясом підприємства) — 422', async () => {
+    const { todayISO } = await import('../src/utils/validators.js');
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const res = await api().post('/api/transactions').set(as('accountant')).send({ ...valid, date: todayISO(tomorrow) });
+    assert.equal(res.status, 422);
+    assert.ok(res.body.details.date);
+  });
+
+  it('сьогоднішня дата приймається — 201', async () => {
+    const { todayISO } = await import('../src/utils/validators.js');
+    const res = await api().post('/api/transactions').set(as('accountant')).send({ ...valid, date: todayISO(), description: 'сьогодні' });
+    assert.equal(res.status, 201);
+  });
+
   it('неіснуюча календарна дата (30 лютого) — 422', async () => {
     const res = await api().post('/api/transactions').set(as('accountant')).send({ ...valid, date: '2024-02-30' });
     assert.equal(res.status, 422);

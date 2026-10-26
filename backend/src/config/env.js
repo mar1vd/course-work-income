@@ -18,6 +18,8 @@ export const config = {
   corsOrigins: (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map((s) => s.trim()),
   // Максимальна кількість спроб входу з однієї IP-адреси за 15 хвилин
   loginRateLimit: Number(process.env.LOGIN_RATE_LIMIT) || 20,
+  // Часовий пояс підприємства: за ним визначається, що таке «сьогодні» при перевірці дати операції
+  timezone: process.env.BUSINESS_TIMEZONE || 'Europe/Kiev',
   // Складність хешування паролів (у тестах знижено для швидкості)
   bcryptRounds: env === 'test' ? 4 : 10,
 };

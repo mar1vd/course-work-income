@@ -1,0 +1,13 @@
+{
+  "name": "income-expense-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report results/html"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0"
+  }
+}

@@ -39,7 +39,7 @@ export default function DashboardPage() {
       <div className="my-4 grid gap-4 lg:grid-cols-2">
         <Card>
           <h2 className="mb-3 text-lg font-semibold">Доходи та витрати по місяцях</h2>
-          <MonthlyChart byMonth={s.byMonth} />
+          <MonthlyChart byMonth={s.byMonth} from={from} to={to} />
         </Card>
         <Card>
           <h2 className="mb-3 text-lg font-semibold">Структура витрат</h2>
