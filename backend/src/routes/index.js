@@ -10,6 +10,7 @@ import * as transactions from '../controllers/transaction.controller.js';
 import * as categories from '../controllers/category.controller.js';
 import * as reports from '../controllers/report.controller.js';
 import * as users from '../controllers/user.controller.js';
+import * as audit from '../controllers/audit.controller.js';
 
 const router = Router();
 const handle = asyncHandler;
@@ -58,6 +59,9 @@ router.delete('/categories/:id', adminOnly, handle(categories.remove));
 router.get('/reports/summary', handle(reports.summary));
 router.get('/reports', handle(reports.history));
 router.post('/reports', canEdit, handle(reports.save));
+
+// --- Історія дій з операціями (ЛР № 12): admin і manager — усі записи, accountant — лише власні ---
+router.get('/audit', handle(audit.list));
 
 // --- Користувачі: лише admin ---
 router.get('/users', adminOnly, handle(users.list));

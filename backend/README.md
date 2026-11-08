@@ -68,6 +68,9 @@ HTTP-запит → middleware (helmet, cors, json, morgan) → routes → authe
 | POST | `/users` | admin | 201 | Створити користувача |
 | PUT | `/users/:id` | admin | 200 | Змінити користувача |
 | DELETE | `/users/:id` | admin | 204 | Видалити користувача |
+| GET | `/audit` | усі (accountant — лише власні записи) | 200 | Історія дій з операціями: `action, userId, transactionId, from, to, page, limit` → `{ items, total, page, limit, actors }` |
+
+Записи історії створює спостерігач `AuditLogObserver` (патерн Observer, `src/patterns/observer/`) після кожного успішного створення, зміни чи видалення операції.
 
 ### Формат помилок
 

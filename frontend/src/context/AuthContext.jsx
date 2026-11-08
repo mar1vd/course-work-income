@@ -47,6 +47,8 @@ export function AuthProvider({ children }) {
       // права доступу, від яких залежить, які кнопки бачить користувач
       canEdit: Boolean(user && ['admin', 'accountant'].includes(user.role)),
       isAdmin: user?.role === 'admin',
+      // адміністратор і керівник відділу бачать історію дій усіх користувачів, бухгалтер — лише власну
+      canSeeAllHistory: Boolean(user && ['admin', 'manager'].includes(user.role)),
     }),
     [user, login, logout]
   );

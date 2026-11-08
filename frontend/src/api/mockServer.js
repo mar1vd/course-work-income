@@ -62,14 +62,20 @@ function seed() {
     add(22, 8, 'expense', between(3000, 9000), 'Закупівля матеріалів');
     add(26, 3, 'income', between(500, 3000), 'Інші надходження');
   }
-  return { categories, transactions, nextTxId: id, nextCatId: categories.length + 1 };
+  return { categories, transactions, nextTxId: id, nextCatId: categories.length + 1, audit: [], nextAuditId: 1 };
 }
 
 // Читання «бази» з localStorage (або створення початкових даних)
 function load() {
   try {
     const raw = localStorage.getItem(DB_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const db = JSON.parse(raw);
+      // «база», збережена до ЛР № 12, ще не має журналу дій
+      db.audit ??= [];
+      db.nextAuditId ??= db.audit.length + 1;
+      return db;
+    }
   } catch {
   }
   const db = seed();
@@ -86,6 +92,22 @@ function save(db) {
 }
 
 const categoryName = (db, id) => db.categories.find((c) => c.id === id)?.name ?? '—';
+
+// ЛР № 12: запис у журнал дій (аналог спостерігача AuditLogObserver на сервері)
+function logAction(db, user, action, before, after) {
+  const snap = (t) =>
+    t && { type: t.type, categoryId: t.categoryId, categoryName: categoryName(db, t.categoryId), amount: t.amount, date: t.date, description: t.description ?? '' };
+  db.audit.push({
+    id: db.nextAuditId++,
+    userId: user.id,
+    userName: user.fullName,
+    action,
+    transactionId: (after ?? before).id,
+    before: snap(before),
+    after: snap(after),
+    createdAt: new Date().toISOString(),
+  });
+}
 
 // Перевіряє токен вигляду mock-token-<id>; якщо недійсний — HTTP 401
 function authenticate(token) {
@@ -229,6 +251,7 @@ export async function mockRequest(method, url, body, token) {
       description: (body.description || '').trim(),
     };
     db.transactions.push(tx);
+    logAction(db, user, 'create', null, tx);
     save(db);
     return { ...tx, categoryName: categoryName(db, tx.categoryId) };
   }
@@ -240,6 +263,7 @@ export async function mockRequest(method, url, body, token) {
     if (method === 'PUT') {
       requireRole(user, ['admin', 'accountant']);
       validateTransaction(db, body || {});
+      const before = { ...tx };
       Object.assign(tx, {
         type: body.type,
         categoryId: Number(body.categoryId),
@@ -247,12 +271,14 @@ export async function mockRequest(method, url, body, token) {
         date: body.date,
         description: (body.description || '').trim(),
       });
+      logAction(db, user, 'update', before, tx);
       save(db);
       return { ...tx, categoryName: categoryName(db, tx.categoryId) };
     }
     if (method === 'DELETE') {
       requireRole(user, ['admin', 'accountant']);
       db.transactions = db.transactions.filter((t) => t.id !== tx.id);
+      logAction(db, user, 'delete', tx, null);
       save(db);
       return null;
     }
@@ -302,6 +328,23 @@ export async function mockRequest(method, url, body, token) {
   // --- Звіти: GET /reports/summary?from=&to= ---
   if (method === 'GET' && path === '/reports/summary') {
     return buildSummary(db, query.from || '0000-01-01', query.to || '9999-12-31');
+  }
+
+  // --- Історія дій (ЛР № 12): GET /audit; бухгалтер бачить лише власні записи ---
+  if (method === 'GET' && path === '/audit') {
+    const all = ['admin', 'manager'].includes(user.role);
+    const dateOf = (iso) => toISO(new Date(iso));
+    let list = db.audit.filter((e) => all || e.userId === user.id);
+    const actors = [...new Map(list.map((e) => [e.userId, { id: e.userId, fullName: e.userName }])).values()];
+    if (all && query.userId) list = list.filter((e) => e.userId === Number(query.userId));
+    if (query.action) list = list.filter((e) => e.action === query.action);
+    if (query.transactionId) list = list.filter((e) => e.transactionId === Number(query.transactionId));
+    if (query.from) list = list.filter((e) => dateOf(e.createdAt) >= query.from);
+    if (query.to) list = list.filter((e) => dateOf(e.createdAt) <= query.to);
+    list.sort((a, b) => b.id - a.id);
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 10));
+    return { items: list.slice((page - 1) * limit, page * limit), total: list.length, page, limit, actors };
   }
 
   throw new ApiError('Ресурс не знайдено', 404);

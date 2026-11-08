@@ -5,6 +5,7 @@ import { config } from '../config/env.js';
 
 export const ROLES = ['admin', 'accountant', 'manager'];
 export const TYPES = ['income', 'expense'];
+export const AUDIT_ACTIONS = ['create', 'update', 'delete'];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

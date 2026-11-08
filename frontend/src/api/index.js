@@ -22,3 +22,8 @@ export const categoriesApi = {
 export const reportsApi = {
   summary: (params) => api.get('/reports/summary', params),
 };
+
+// ЛР № 12: історія дій з операціями (GET /audit)
+export const auditApi = {
+  list: (params) => api.get('/audit', params),
+};

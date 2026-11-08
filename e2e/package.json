@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
-    "report": "playwright show-report results/html"
+    "report": "playwright show-report"
   },
   "devDependencies": {
     "@playwright/test": "1.56.0"

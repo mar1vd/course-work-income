@@ -27,7 +27,7 @@ const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDat
 
 export async function seed() {
   // Повне очищення таблиць і скидання лічильників ідентифікаторів
-  await query('TRUNCATE reports, transactions, categories, users RESTART IDENTITY CASCADE');
+  await query('TRUNCATE audit_log, reports, transactions, categories, users RESTART IDENTITY CASCADE');
 
   const ids = {};
   for (const u of USERS) {
