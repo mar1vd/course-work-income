@@ -7,7 +7,7 @@ const schemaPath = fileURLToPath(new URL('./schema.sql', import.meta.url));
 
 export async function migrate({ reset = false } = {}) {
   if (reset) {
-    await query('DROP TABLE IF EXISTS reports, transactions, categories, users CASCADE');
+    await query('DROP TABLE IF EXISTS audit_log, reports, transactions, categories, users CASCADE');
   }
   await query(readFileSync(schemaPath, 'utf8'));
 }

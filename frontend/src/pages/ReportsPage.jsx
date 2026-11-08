@@ -9,21 +9,17 @@ import Card from '../components/ui/Card.jsx';
 import Field from '../components/ui/Field.jsx';
 import PageHeader from '../components/ui/PageHeader.jsx';
 import { Input } from '../components/ui/Controls.jsx';
-import { TYPE_LABELS, amountClass, formatMoney, monthLabel, monthStartISO, toISO, todayISO } from '../utils/format.js';
+import { amountClass, formatMoney, monthLabel, monthStartISO, toISO, todayISO } from '../utils/format.js';
 import { validatePeriod } from '../utils/validators.js';
+import { EXPORT_STRATEGIES, ReportExporter, downloadFile } from '../patterns/strategy/index.js';
 
-// Експорт звіту у CSV (з BOM, щоб Excel коректно відкривав кирилицю)
-function exportCsv(summary) {
-  const rows = [['Категорія', 'Тип', 'Сума, грн']];
-  summary.byCategory.forEach((c) => rows.push([c.name, TYPE_LABELS[c.type], c.total.toFixed(2)]));
-  rows.push([], ['Доходи', '', summary.totalIncome.toFixed(2)], ['Витрати', '', summary.totalExpense.toFixed(2)], ['Прибуток', '', summary.profit.toFixed(2)]);
-  const csv = '\uFEFF' + rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\r\n');
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `report_${summary.from}_${summary.to}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+// ЛР № 12 (Strategy): формат файла визначає стратегія з EXPORT_STRATEGIES,
+// тому сторінка не містить коду формування CSV чи Excel і не змінюється при додаванні формату.
+const exporter = new ReportExporter(EXPORT_STRATEGIES.csv);
+
+function exportReport(summary, format) {
+  exporter.setStrategy(EXPORT_STRATEGIES[format]);
+  downloadFile(exporter.createFile(summary));
 }
 
 const cellClass = 'border-b border-slate-200 px-2 py-2';
@@ -57,9 +53,13 @@ export default function ReportsPage() {
   return (
     <div>
       <PageHeader title="Звіти">
-        <Button variant="outline" disabled={!s} onClick={() => exportCsv(s)}>
-          Експортувати CSV
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(EXPORT_STRATEGIES).map(([format, strategy]) => (
+            <Button key={format} variant="outline" disabled={!s} onClick={() => exportReport(s, format)}>
+              Експортувати {strategy.label}
+            </Button>
+          ))}
+        </div>
       </PageHeader>
 
       <form onSubmit={(e) => e.preventDefault()} className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3.5">

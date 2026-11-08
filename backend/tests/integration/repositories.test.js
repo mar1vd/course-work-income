@@ -58,7 +58,7 @@ describe('Інтеграційне тестування: сервер ↔ баз
     await assert.rejects(transactionRepository.create(userId, { ...base, categoryId: 999999 }), { code: '23503' });
     // FOREIGN KEY ... ON DELETE RESTRICT: категорію з операціями видалити не можна
     await transactionRepository.create(userId, base);
-    await assert.rejects(categoryRepository.remove(incomeCategoryId), { code: '23001' });
+    await assert.rejects(categoryRepository.remove(incomeCategoryId), { code: '23503' });
     // UNIQUE (name, type): дубль категорії
     await assert.rejects(categoryRepository.create({ name: 'Продажі', type: 'income' }), { code: '23505' });
   });

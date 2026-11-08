@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import TransactionsPage from './pages/TransactionsPage.jsx';
 import CategoriesPage from './pages/CategoriesPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
+import HistoryPage from './pages/HistoryPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
 // Карта маршрутів застосунку (відповідає карті навігації зі звіту)
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="transactions" element={<TransactionsPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="reports" element={<ReportsPage />} />
+        <Route path="history" element={<HistoryPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/index.html" element={<Navigate to="/" replace />} />

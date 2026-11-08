@@ -593,3 +593,107 @@ describe('Користувачі (лише адміністратор)', () => {
     assert.equal(res.status, 401);
   });
 });
+
+describe('Історія дій з операціями (ЛР № 12, Observer)', () => {
+  before(async () => {
+    await loadFixtures();
+  });
+
+  const newTx = { type: 'expense', categoryId: 3, amount: 120.5, date: '2024-05-10', description: 'Оренда травня' };
+  let txId;
+
+  const history = (role, params = {}) => api().get('/api/audit').query(params).set(as(role));
+
+  it('AU-01: створення операції бухгалтером записується в історію', async () => {
+    const created = await api().post('/api/transactions').set(as('accountant')).send(newTx);
+    assert.equal(created.status, 201);
+    txId = created.body.id;
+    const res = await history('accountant');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.total, 1);
+    const [entry] = res.body.items;
+    assert.equal(entry.action, 'create');
+    assert.equal(entry.transactionId, txId);
+    assert.equal(entry.userId, 2);
+    assert.equal(entry.userName, 'Тестовий Бухгалтер');
+    assert.equal(entry.before, null);
+    assert.deepEqual(entry.after, {
+      type: 'expense', categoryId: 3, categoryName: 'Оренда', amount: 120.5, date: '2024-05-10', description: 'Оренда травня',
+    });
+    assert.ok(!Number.isNaN(Date.parse(entry.createdAt)));
+  });
+
+  it('AU-02: зміна операції зберігає стан «до» і «після»', async () => {
+    const res = await api().put(`/api/transactions/${txId}`).set(as('accountant')).send({ ...newTx, amount: 999 });
+    assert.equal(res.status, 200);
+    const [entry] = (await history('accountant', { action: 'update' })).body.items;
+    assert.equal(entry.before.amount, 120.5);
+    assert.equal(entry.after.amount, 999);
+  });
+
+  it('AU-03: після видалення операції запис історії залишається', async () => {
+    assert.equal((await api().delete(`/api/transactions/${txId}`).set(as('accountant'))).status, 204);
+    const res = await history('accountant', { transactionId: txId });
+    assert.deepEqual(res.body.items.map((e) => e.action), ['delete', 'update', 'create']); // новіші — першими
+    assert.equal(res.body.items[0].after, null);
+    assert.equal(res.body.items[0].before.amount, 999);
+  });
+
+  it('AU-04: невдалі дії (422, 404, 403) не потрапляють в історію', async () => {
+    await api().post('/api/transactions').set(as('accountant')).send({ ...newTx, amount: -1 });
+    await api().put('/api/transactions/999999').set(as('accountant')).send(newTx);
+    await api().post('/api/transactions').set(as('manager')).send(newTx);
+    const { rows } = await query('SELECT COUNT(*)::int AS n FROM audit_log');
+    assert.equal(rows[0].n, 3);
+  });
+
+  it('AU-05: бухгалтер бачить лише власні дії, навіть якщо вказує чужий userId', async () => {
+    assert.equal((await api().post('/api/transactions').set(as('admin')).send(newTx)).status, 201);
+    const own = await history('accountant');
+    assert.equal(own.body.total, 3);
+    assert.ok(own.body.items.every((e) => e.userId === 2));
+    const spoofed = await history('accountant', { userId: 1 });
+    assert.ok(spoofed.body.items.every((e) => e.userId === 2));
+    assert.deepEqual(own.body.actors, [{ id: 2, fullName: 'Тестовий Бухгалтер' }]);
+  });
+
+  it('AU-06: адміністратор і керівник бачать усіх і можуть фільтрувати за користувачем і дією', async () => {
+    for (const role of ['admin', 'manager']) {
+      const all = await history(role);
+      assert.equal(all.status, 200);
+      assert.equal(all.body.total, 4);
+      assert.equal(all.body.actors.length, 2);
+      const adminOnly = await history(role, { userId: 1 });
+      assert.equal(adminOnly.body.total, 1);
+      const creates = await history(role, { action: 'create' });
+      assert.equal(creates.body.total, 2);
+    }
+  });
+
+  it('AU-07: фільтр за періодом і пагінація', async () => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Kiev' }).format(new Date());
+    assert.equal((await history('admin', { from: today, to: today })).body.total, 4);
+    assert.equal((await history('admin', { from: '2000-01-01', to: '2000-12-31' })).body.total, 0);
+    const page = await history('admin', { page: 2, limit: 3 });
+    assert.equal(page.body.items.length, 1);
+    assert.equal(page.body.page, 2);
+  });
+
+  it('AU-08: некоректні параметри — 400/422, без токена — 401', async () => {
+    assert.equal((await history('admin', { action: 'drop' })).status, 400);
+    assert.equal((await history('admin', { userId: 'abc' })).status, 400);
+    assert.equal((await history('admin', { from: '2024-02-30' })).status, 422);
+    assert.equal((await api().get('/api/audit')).status, 401);
+  });
+
+  it('AU-09: історія зберігає ім\'я автора навіть після видалення його облікового запису', async () => {
+    const created = await api().post('/api/users').set(as('admin')).send({ fullName: 'Тимчасовий Бухгалтер', email: 'temp@test.com', role: 'accountant', password: 'longpassword' });
+    const login = await api().post('/api/auth/login').send({ email: 'temp@test.com', password: 'longpassword' });
+    const tx = await api().post('/api/transactions').set({ Authorization: `Bearer ${login.body.token}` }).send(newTx);
+    await api().delete(`/api/transactions/${tx.body.id}`).set({ Authorization: `Bearer ${login.body.token}` });
+    assert.equal((await api().delete(`/api/users/${created.body.id}`).set(as('admin'))).status, 204);
+    const res = await history('admin', { transactionId: tx.body.id });
+    assert.equal(res.body.total, 2);
+    assert.ok(res.body.items.every((e) => e.userId === null && e.userName === 'Тимчасовий Бухгалтер'));
+  });
+});

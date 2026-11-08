@@ -20,16 +20,16 @@ export async function list(req, res) {
 
 export async function create(req, res) {
   const data = validateTransaction(req.body);
-  res.status(201).json(await transactionService.create(req.user.id, data));
+  res.status(201).json(await transactionService.create(req.user, data));
 }
 
 export async function update(req, res) {
   const id = parseId(req.params.id);
   const data = validateTransaction(req.body);
-  res.json(await transactionService.update(id, data));
+  res.json(await transactionService.update(req.user, id, data));
 }
 
 export async function remove(req, res) {
-  await transactionService.remove(parseId(req.params.id));
+  await transactionService.remove(req.user, parseId(req.params.id));
   res.status(204).end();
 }
